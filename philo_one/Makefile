@@ -7,12 +7,12 @@ OBJS			= $(addprefix $(OBJS_DIR), $(SRCS_FILE:.c=.o))
 
 SRCS_DIR		= ./srcs/
 OBJS_DIR		= ./objs/
-INCLUDES_DIR	= ./includes/
+INCLUDES_DIR	= ./
 
 HEADER			= $(INCLUDES_DIR)philo_one.h
 
-CFLAGS			= -Wall -Wextra -Werror -O2 -g#3 -fsanitize=address,undefined -Wpadded
-CC				= clang
+CFLAGS			= -Wall -Werror #-fsanitize=address,undefined
+CC				= gcc
 
 INCLUDES	= $(addprefix -I, $(INCLUDES_DIR))
 
@@ -48,7 +48,7 @@ $(OBJS_DIR):
 FORCE:
 
 $(NAME): $(OBJS_DIR) $(OBJS)
-	$(CC) -lpthread $(CFLAGS) $(OBJS) -o $(NAME)
+	$(CC) $(CFLAGS) $(OBJS) -lpthread -o $(NAME)
 
 $(OBJS): $(OBJS_DIR)%.o: $(SRCS_DIR)%.c $(HEADER)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@

@@ -13,6 +13,23 @@
 # define THINK 3
 # define DIE 4
 
+typedef struct s_params
+{
+	int			nb_philo;
+	int			time_die;
+	int			time_eat;
+	int			time_sleep;
+	int			nb_meal;
+}				t_params;
+
+typedef struct s_philo
+{
+	int			id;
+	int			time_death;
+	int			nb_meal;
+	pthread_t	thread;
+}				t_philo;
+
 int			ft_strlen(char const *str);
 int			ft_atoi(char const *str);
 void		ft_putnbr_fd(uint64_t n, int fd);
