@@ -6,6 +6,8 @@
 # include <pthread.h>
 # include <sys/time.h>
 # include <stdint.h>
+# include <stdlib.h>
+# include <inttypes.h>
 
 # define FORK 0
 # define EAT 1

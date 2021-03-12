@@ -1,118 +1,37 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
+/*   Updated: 2021/03/12 14:48:55 by celeloup         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../philo_one.h"
 
-#include <stdlib.h>
-// #include <inttypes.h>
+void	message(int philosopher, int type, uint64_t start_time)
+{
+	if (type == FORK)
+		printf("%" PRIu64 " %d has taken a fork\n", get_time() \
+			- start_time, philosopher);
+	else if (type == EAT)
+		printf("%" PRIu64 " %d is eating\n", get_time() \
+			- start_time, philosopher);
+	else if (type == SLEEP)
+		printf("%" PRIu64 " %d is sleeping\n", get_time() \
+			- start_time, philosopher);
+	else if (type == THINK)
+		printf("%" PRIu64 " %d is thinking\n", get_time() \
+			- start_time, philosopher);
+	else
+		printf("%" PRIu64 " %d is dead\n", get_time() \
+			- start_time, philosopher);
+}
 
-// int nb_philo;
-// int time_to_die;
-// int time_to_eat;
-// int time_to_sleep;
-// int nb_lunch;
-// pthread_t	*philosophers;
-// pthread_mutex_t	*forks;
-// uint64_t start_time;
-
-// void	message(int philosopher, int type)
-// {
-// 	if (type == FORK)
-// 		printf("%" PRIu64 " %d has taken a fork\n",get_time() - start_time, philosopher + 1);
-// 	else if (type == EAT)
-// 		printf("%" PRIu64 " %d is eating\n",get_time() - start_time, philosopher + 1);
-// 	else if (type == SLEEP)
-// 		printf("%" PRIu64 " %d is sleeping\n",get_time() - start_time, philosopher + 1);
-// 	else if (type == THINK)
-// 		printf("%" PRIu64 " %d is thinking\n",get_time() - start_time, philosopher + 1);
-// 	else
-// 		printf("%" PRIu64 " %d is dead\n",get_time() - start_time, philosopher + 1);
-// }
-
-// void manger(int id)
-// {
-// 	message(id, EAT);
-// 	usleep(time_to_eat * 1000);
-// }
-
-// void *philosopher (void *arg)
-// {
-// 	int *id = (int*)arg;
-// 	int left = *id;
-// 	int right = (left + 1) % nb_philo;
-// 	start_time = get_time();
-// 	uint64_t time_last_ate = get_time();
-// 	int i = 1;
-// 	while(i < nb_lunch + 1)
-// 	{
-// 		if (get_time() - time_last_ate > (uint64_t)time_to_die)
-// 		{
-// 			message(*id, DIE);
-// 			exit(1);
-// 		}
-// 		if (left < right)
-// 		{
-// 			pthread_mutex_lock(&forks[left]);
-// 			pthread_mutex_lock(&forks[right]);
-// 		}
-// 		else
-// 		{
-// 			pthread_mutex_lock(&forks[right]);
-// 			pthread_mutex_lock(&forks[left]);
-// 		}
-		
-// 		message(*id, FORK);
-// 		message(*id, FORK);
-// 		manger(*id);
-// 		time_last_ate = get_time();
-// 		pthread_mutex_unlock(&forks[left]);
-// 		pthread_mutex_unlock(&forks[right]);
-// 		message(*id, SLEEP);
-// 		usleep(time_to_sleep * 1000);
-// 		message(*id, THINK);
-// 		if (nb_lunch != 0)
-// 			i++;
-// 	}
-// 	return (NULL);
-// }
-
-
-// int main(int argc, char **argv) //int argc, char **argv
-// {
-// 	if (argc < 5)
-// 	{
-// 		printf("usage: not good\n");
-// 		return (EXIT_FAILURE);
-// 	}
-// 	nb_philo = ft_atoi(argv[1]);
-// 	time_to_die = ft_atoi(argv[2]);
-// 	time_to_eat = ft_atoi(argv[3]);
-// 	time_to_sleep = ft_atoi(argv[4]);
-// 	if (argc == 6)
-// 		nb_lunch = ft_atoi(argv[5]);
-// 	else
-// 		nb_lunch = 0;
-// 	long i;
-// 	int id[nb_philo];
-
-// 	for (i = 0; i < nb_philo; i++)
-// 		id[i] = i;
-	
-// 	forks = malloc(sizeof(pthread_mutex_t) * nb_philo);
-// 	philosophers = malloc(sizeof(pthread_t) * nb_philo);
-
-// 	for (i = 0; i < nb_philo; i++)
-// 	{
-// 		pthread_mutex_init(&forks[i], NULL);
-// 	}
-		
-// 	for (i = 0; i < nb_philo; i++)
-// 		pthread_create(&philosophers[i], NULL, philosopher, (void*)&(id[i]));
-
-// 	for (i = 0; i < nb_philo; i++)
-// 		pthread_join(philosophers[i], NULL);
-
-// 	return (0);
-// }
-
-int	parser(t_params *param, char **args)
+int		parser(t_params *param, char **args)
 {
 	param->nb_philo = ft_atoi(args[1]);
 	param->time_die = ft_atoi(args[2]);
@@ -145,16 +64,52 @@ int		usage(char *programme)
 
 void	*philosophizing(void *args)
 {
-	t_philo	*self;
+	t_philo		*self;
+	int			i;
+	uint64_t	done_activity;
+	int			left;
+	int			right;
 
 	self = (t_philo *)args;
-	
-	// while (self->params->start_time == 0)
-	// {
-	// 	usleep(50);
-	// 	printf("not started yet");
-	// }
-	printf("philosopher %d is philosophizing, start-time = %llu\n", self->id, self->params->start_time);
+	while (self->params->start_time == 0)
+		usleep(50);
+	left = self->id;
+	right = (left + 1) % self->params->nb_philo;
+	i = 1;
+	while (i < self->params->nb_meal + 1)
+	{
+		// if (get_time() - time_last_ate > (uint64_t)time_to_die)
+		// {
+		// 	message(*id, DIE);
+		// 	exit(1);
+		// }
+		if (left < right)
+		{
+			pthread_mutex_lock(&(*self->forks)[left]);
+			pthread_mutex_lock(&(*self->forks)[right]);
+		}
+		else
+		{
+			pthread_mutex_lock(&(*self->forks)[right]);
+			pthread_mutex_lock(&(*self->forks)[left]);
+		}
+		message(self->id, FORK, self->params->start_time);
+		message(self->id, FORK, self->params->start_time);
+		done_activity = get_time() + self->params->time_eat;
+		while (done_activity > get_time())
+			usleep(50);
+		message(self->id, EAT, self->params->start_time);
+		// time_last_ate = get_time();
+		pthread_mutex_unlock(&(*self->forks)[left]);
+		pthread_mutex_unlock(&(*self->forks)[right]);
+		message(self->id, SLEEP, self->params->start_time);
+		done_activity = get_time() + self->params->time_sleep;
+		while (done_activity > get_time())
+			usleep(50);
+		message(self->id, THINK, self->params->start_time);
+		if (self->nb_meal != -1)
+			i++;
+	}
 	return (NULL);
 }
 
@@ -183,24 +138,28 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 		pthread_create(&((*philosophers)[i].thread), NULL, philosophizing, &(*philosophers)[i]);
 		i++;
 	}
+	parameters->start_time = get_time();
+	i = 0;
+	while (i < parameters->nb_philo)
+	{
+		pthread_join((*philosophers)[i].thread, NULL);
+		i++;
+	}
 }
 
-// printf("nb_philo = %d\ntime_die = %d\ntime_eat = %d\ntime_sleep = %d\nnb_meal = %d\n", parameters.nb_philo, parameters.time_die, parameters.time_eat, parameters.time_sleep, parameters.nb_meal);
-
-int main(int argc, char **argv)
+void	the_watcher(t_philo *philosophers)
 {
-	t_params parameters;
-	t_philo *philosophers;
+	printf("i am the watcher");
+}
+
+int		main(int argc, char **argv)
+{
+	t_params		parameters;
+	t_philo			*philosophers;
 	pthread_mutex_t	*forks;
 
 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
-		return(usage(argv[0]));
+		return (usage(argv[0]));
 	initialisation(&parameters, &philosophers, &forks);
-	int i = 0;
-	while (i < parameters.nb_philo)
-	{
-		printf("%d %d %d\n", philosophers[i].id, philosophers[i].time_death, philosophers[i].nb_meal);
-		i++;
-	}
 	return (0);
 }
