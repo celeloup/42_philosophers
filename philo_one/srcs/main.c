@@ -128,6 +128,7 @@ int	parser(t_params *param, char **args)
 		printf("Error: wrong argument.\n");
 		return (1);
 	}
+	param->start_time = 0;
 	return (0);
 }
 
@@ -144,30 +145,42 @@ int		usage(char *programme)
 
 void	*philosophizing(void *args)
 {
-	printf("philosopher is philosophizing\n");
+	t_philo	*self;
+
+	self = (t_philo *)args;
+	
+	// while (self->params->start_time == 0)
+	// {
+	// 	usleep(50);
+	// 	printf("not started yet");
+	// }
+	printf("philosopher %d is philosophizing, start-time = %llu\n", self->id, self->params->start_time);
 	return (NULL);
 }
 
-void	initialisation(t_params parameters, t_philo **philosophers, pthread_mutex_t **forks, uint64_t *start_time)
+void	initialisation(t_params *parameters, t_philo **philosophers, \
+	pthread_mutex_t **forks)
 {
 	int i;
 
-	*forks = malloc(sizeof(pthread_mutex_t) * parameters.nb_philo);
+	*forks = malloc(sizeof(pthread_mutex_t) * parameters->nb_philo);
 	i = 0;
-	while (i < parameters.nb_philo)
+	while (i < parameters->nb_philo)
 	{
 		pthread_mutex_init(&(*forks)[i], NULL);
 		i++;
 	}
-	*philosophers = malloc(sizeof(t_philo) * parameters.nb_philo);
+	*philosophers = malloc(sizeof(t_philo) * parameters->nb_philo);
 	i = 0;
-	while(i < parameters.nb_philo)
+	while (i < parameters->nb_philo)
 	{
 		(*philosophers)[i].id = i + 1;
 		(*philosophers)[i].time_death = 100;
 		(*philosophers)[i].nb_meal = 0;
 		(*philosophers)[i].thread = (pthread_t)malloc(sizeof(pthread_t));
-		pthread_create(&((*philosophers)[i].thread), NULL, philosophizing, NULL);
+		(*philosophers)[i].params = parameters;
+		(*philosophers)[i].forks = forks;
+		pthread_create(&((*philosophers)[i].thread), NULL, philosophizing, &(*philosophers)[i]);
 		i++;
 	}
 }
@@ -178,12 +191,11 @@ int main(int argc, char **argv)
 {
 	t_params parameters;
 	t_philo *philosophers;
-	uint64_t start_time;
 	pthread_mutex_t	*forks;
 
 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
 		return(usage(argv[0]));
-	initialisation(parameters, &philosophers, &forks, &start_time);
+	initialisation(&parameters, &philosophers, &forks);
 	int i = 0;
 	while (i < parameters.nb_philo)
 	{

@@ -20,6 +20,7 @@ typedef struct s_params
 	int			time_eat;
 	int			time_sleep;
 	int			nb_meal;
+	uint64_t	start_time;
 }				t_params;
 
 typedef struct s_philo
@@ -28,6 +29,8 @@ typedef struct s_philo
 	int			time_death;
 	int			nb_meal;
 	pthread_t	thread;
+	t_params	*params;
+	pthread_mutex_t	**forks;
 }				t_philo;
 
 int			ft_strlen(char const *str);
