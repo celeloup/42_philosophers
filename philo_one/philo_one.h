@@ -29,7 +29,7 @@ typedef struct 		s_params
 typedef struct 		s_philo
 {
 	int				id;
-	int				time_death;
+	uint64_t		time_death;
 	int				nb_meal;
 	pthread_t		thread;
 	t_params		*params;

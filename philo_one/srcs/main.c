@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/16 20:20:03 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/16 20:52:37 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,7 +129,7 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 	while (i < parameters->nb_philo)
 	{
 		(*philosophers)[i].id = i + 1;
-		(*philosophers)[i].time_death = 100;
+		(*philosophers)[i].time_death = 0;
 		(*philosophers)[i].nb_meal = 0;
 		(*philosophers)[i].thread = (pthread_t)malloc(sizeof(pthread_t));
 		(*philosophers)[i].params = parameters;
@@ -139,11 +139,11 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 	}
 	parameters->start_time = get_time();
 	i = 0;
-	while (i < parameters->nb_philo)
-	{
-		pthread_join((*philosophers)[i].thread, NULL);
-		i++;
-	}
+//	while (i < parameters->nb_philo)
+//	{
+//		pthread_join((*philosophers)[i].thread, NULL);
+//		i++;
+//	}
 }
 
 void	the_watcher(t_philo *philosophers)
@@ -155,11 +155,11 @@ void	the_watcher(t_philo *philosophers)
 	params = philosophers[0].params;
 	usleep(params->time_die * 1000);
 	i = 0;
-	printf("yo");
+	printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
 	while (get_time() < philosophers[i].time_death)
 	{
 		printf("hello");
-		printf("philo %d time death = %d, time now = %ld", philosophers[i].id, philosophers[i].time_death, get_time());
+		printf("philo %d time death = %ld, time now = %ld", philosophers[i].id, philosophers[i].time_death, get_time());
 		if (philosophers[i].nb_meal == params->nb_meal)
 			full_philosophers++;
 		if (i < params->nb_philo)
