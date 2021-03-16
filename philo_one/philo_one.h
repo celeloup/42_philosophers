@@ -15,25 +15,26 @@
 # define THINK 3
 # define DIE 4
 
-typedef struct s_params
+typedef struct 		s_params
 {
-	int			nb_philo;
-	int			time_die;
-	int			time_eat;
-	int			time_sleep;
-	int			nb_meal;
-	uint64_t	start_time;
-}				t_params;
+	int				nb_philo;
+	int				time_die;
+	int				time_eat;
+	int				time_sleep;
+	int				nb_meal;
+	uint64_t		start_time;
+	pthread_mutex_t	write_lock;
+}					t_params;
 
-typedef struct s_philo
+typedef struct 		s_philo
 {
-	int			id;
-	int			time_death;
-	int			nb_meal;
-	pthread_t	thread;
-	t_params	*params;
+	int				id;
+	int				time_death;
+	int				nb_meal;
+	pthread_t		thread;
+	t_params		*params;
 	pthread_mutex_t	**forks;
-}				t_philo;
+}					t_philo;
 
 int			ft_strlen(char const *str);
 int			ft_atoi(char const *str);

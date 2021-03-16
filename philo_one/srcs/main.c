@@ -6,14 +6,15 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/12 14:48:55 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/16 20:20:03 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philo_one.h"
 
-void	message(int philosopher, int type, uint64_t start_time)
+void	message(int philosopher, int type, uint64_t start_time, pthread_mutex_t write_lock)
 {
+	pthread_mutex_lock(&write_lock);
 	if (type == FORK)
 		printf("%" PRIu64 " %d has taken a fork\n", get_time() \
 			- start_time, philosopher);
@@ -29,6 +30,8 @@ void	message(int philosopher, int type, uint64_t start_time)
 	else
 		printf("%" PRIu64 " %d is dead\n", get_time() \
 			- start_time, philosopher);
+	if (type != DIE)
+		pthread_mutex_unlock(&write_lock);
 }
 
 int		parser(t_params *param, char **args)
@@ -48,6 +51,7 @@ int		parser(t_params *param, char **args)
 		return (1);
 	}
 	param->start_time = 0;
+	pthread_mutex_init(&(param->write_lock), NULL);
 	return (0);
 }
 
@@ -73,16 +77,11 @@ void	*philosophizing(void *args)
 	self = (t_philo *)args;
 	while (self->params->start_time == 0)
 		usleep(50);
-	left = self->id;
+	left = self->id - 1;
 	right = (left + 1) % self->params->nb_philo;
 	i = 1;
 	while (i < self->params->nb_meal + 1)
 	{
-		// if (get_time() - time_last_ate > (uint64_t)time_to_die)
-		// {
-		// 	message(*id, DIE);
-		// 	exit(1);
-		// }
 		if (left < right)
 		{
 			pthread_mutex_lock(&(*self->forks)[left]);
@@ -93,20 +92,20 @@ void	*philosophizing(void *args)
 			pthread_mutex_lock(&(*self->forks)[right]);
 			pthread_mutex_lock(&(*self->forks)[left]);
 		}
-		message(self->id, FORK, self->params->start_time);
-		message(self->id, FORK, self->params->start_time);
+		message(self->id, FORK, self->params->start_time, self->params->write_lock);
+		message(self->id, FORK, self->params->start_time, self->params->write_lock);
 		done_activity = get_time() + self->params->time_eat;
+		message(self->id, EAT, self->params->start_time, self->params->write_lock);
+		self->time_death = get_time() + self->params->time_die;
 		while (done_activity > get_time())
 			usleep(50);
-		message(self->id, EAT, self->params->start_time);
-		// time_last_ate = get_time();
 		pthread_mutex_unlock(&(*self->forks)[left]);
 		pthread_mutex_unlock(&(*self->forks)[right]);
-		message(self->id, SLEEP, self->params->start_time);
+		message(self->id, SLEEP, self->params->start_time, self->params->write_lock);
 		done_activity = get_time() + self->params->time_sleep;
 		while (done_activity > get_time())
 			usleep(50);
-		message(self->id, THINK, self->params->start_time);
+		message(self->id, THINK, self->params->start_time, self->params->write_lock);
 		if (self->nb_meal != -1)
 			i++;
 	}
@@ -118,7 +117,7 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 {
 	int i;
 
-	*forks = malloc(sizeof(pthread_mutex_t) * parameters->nb_philo);
+	*forks = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t) * parameters->nb_philo);
 	i = 0;
 	while (i < parameters->nb_philo)
 	{
@@ -149,7 +148,33 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 
 void	the_watcher(t_philo *philosophers)
 {
-	printf("i am the watcher");
+	int	i;
+	int full_philosophers;
+	t_params *params;
+
+	params = philosophers[0].params;
+	usleep(params->time_die * 1000);
+	i = 0;
+	printf("yo");
+	while (get_time() < philosophers[i].time_death)
+	{
+		printf("hello");
+		printf("philo %d time death = %d, time now = %ld", philosophers[i].id, philosophers[i].time_death, get_time());
+		if (philosophers[i].nb_meal == params->nb_meal)
+			full_philosophers++;
+		if (i < params->nb_philo)
+			i++;
+		else if (full_philosophers != params->nb_philo)
+		{
+			i = 0;
+			full_philosophers = 0;
+		}
+		else
+			break;
+	}
+	if (full_philosophers != params->nb_philo)
+		message(philosophers[i].id, DIE, params->start_time, params->write_lock);
+	return;
 }
 
 int		main(int argc, char **argv)
@@ -161,5 +186,6 @@ int		main(int argc, char **argv)
 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
 		return (usage(argv[0]));
 	initialisation(&parameters, &philosophers, &forks);
+	the_watcher(philosophers);
 	return (0);
 }
