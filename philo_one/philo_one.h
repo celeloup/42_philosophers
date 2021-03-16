@@ -31,7 +31,7 @@ typedef struct 		s_philo
 	int				id;
 	uint64_t		time_death;
 	int				nb_meal;
-	pthread_t		thread;
+	pthread_t		*thread;
 	t_params		*params;
 	pthread_mutex_t	**forks;
 }					t_philo;

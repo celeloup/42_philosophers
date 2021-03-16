@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/16 21:06:54 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/16 21:41:11 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,8 +106,8 @@ void	*philosophizing(void *args)
 		while (done_activity > get_time())
 			usleep(50);
 		message(self->id, THINK, self->params->start_time, self->params->write_lock);
-		if (self->nb_meal != -1)
-			i++;
+		self->nb_meal++;
+		i++;
 	}
 	return (NULL);
 }
@@ -131,10 +131,10 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 		(*philosophers)[i].id = i + 1;
 		(*philosophers)[i].time_death = 0;
 		(*philosophers)[i].nb_meal = 0;
-		(*philosophers)[i].thread = (pthread_t)malloc(sizeof(pthread_t));
+		(*philosophers)[i].thread = (pthread_t*)malloc(sizeof(pthread_t*));
 		(*philosophers)[i].params = parameters;
 		(*philosophers)[i].forks = forks;
-		pthread_create(&((*philosophers)[i].thread), NULL, philosophizing, &(*philosophers)[i]);
+		pthread_create((*philosophers)[i].thread, NULL, philosophizing, &(*philosophers)[i]);
 		i++;
 	}
 	parameters->start_time = get_time();
@@ -158,11 +158,11 @@ void	the_watcher(t_philo *philosophers, t_params params)
 	while (get_time() < philosophers[i].time_death)
 	{
 		//printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
-		if (philosophers[i].nb_meal == params.nb_meal)
+		if (philosophers[i].nb_meal >= params.nb_meal)
 			full_philosophers++;
 		if (i < params.nb_philo - 1)
 			i++;
-		else if (full_philosophers != params.nb_philo)
+		else if (full_philosophers != params.nb_philo - 1)
 		{
 			i = 0;
 			full_philosophers = 0;
@@ -170,9 +170,34 @@ void	the_watcher(t_philo *philosophers, t_params params)
 		else
 			break;
 	}
+	i = 0;
+	full_philosophers = 0;
+	while (i < params.nb_philo - 1)
+	{
+		if (philosophers[i].nb_meal >= params.nb_meal)
+			full_philosophers++;
+		i++;
+	}
+	printf("full_philo = %d\n", full_philosophers);
 	if (full_philosophers != params.nb_philo)
 		message(philosophers[i].id, DIE, params.start_time, params.write_lock);
 	return;
+}
+
+void	free_it_all(t_params params, pthread_mutex_t *forks, t_philo *philosophers)
+{
+	int i;
+
+	i = 0;
+	while (i < params.nb_philo)
+	{
+		pthread_mutex_destroy(&forks[i]);
+		free(philosophers[i].thread);
+		i++;
+	}
+	free(forks);
+	free(philosophers);
+	//free(params.write_lock);
 }
 
 int		main(int argc, char **argv)
@@ -185,5 +210,6 @@ int		main(int argc, char **argv)
 		return (usage(argv[0]));
 	initialisation(&parameters, &philosophers, &forks);
 	the_watcher(philosophers, parameters);
+	free_it_all(parameters, forks, philosophers);
 	return (0);
 }
