@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/16 20:52:37 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/16 21:06:54 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -146,25 +146,23 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 //	}
 }
 
-void	the_watcher(t_philo *philosophers)
+void	the_watcher(t_philo *philosophers, t_params params)
 {
 	int	i;
 	int full_philosophers;
-	t_params *params;
 
-	params = philosophers[0].params;
-	usleep(params->time_die * 1000);
+	usleep(params.time_die * 1000);
 	i = 0;
-	printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
+	full_philosophers = 0;
+	//printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
 	while (get_time() < philosophers[i].time_death)
 	{
-		printf("hello");
-		printf("philo %d time death = %ld, time now = %ld", philosophers[i].id, philosophers[i].time_death, get_time());
-		if (philosophers[i].nb_meal == params->nb_meal)
+		//printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
+		if (philosophers[i].nb_meal == params.nb_meal)
 			full_philosophers++;
-		if (i < params->nb_philo)
+		if (i < params.nb_philo - 1)
 			i++;
-		else if (full_philosophers != params->nb_philo)
+		else if (full_philosophers != params.nb_philo)
 		{
 			i = 0;
 			full_philosophers = 0;
@@ -172,8 +170,8 @@ void	the_watcher(t_philo *philosophers)
 		else
 			break;
 	}
-	if (full_philosophers != params->nb_philo)
-		message(philosophers[i].id, DIE, params->start_time, params->write_lock);
+	if (full_philosophers != params.nb_philo)
+		message(philosophers[i].id, DIE, params.start_time, params.write_lock);
 	return;
 }
 
@@ -186,6 +184,6 @@ int		main(int argc, char **argv)
 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
 		return (usage(argv[0]));
 	initialisation(&parameters, &philosophers, &forks);
-	the_watcher(philosophers);
+	the_watcher(philosophers, parameters);
 	return (0);
 }
