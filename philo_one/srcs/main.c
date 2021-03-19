@@ -6,15 +6,16 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/16 21:41:11 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/19 15:54:38 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philo_one.h"
 
-void	message(int philosopher, int type, uint64_t start_time, pthread_mutex_t write_lock)
+void	message(int philosopher, int type, uint64_t start_time, pthread_mutex_t *write_lock)
 {
-	pthread_mutex_lock(&write_lock);
+	int ret = pthread_mutex_lock(write_lock);
+	printf("ret lock write = %d\n", ret);
 	if (type == FORK)
 		printf("%" PRIu64 " %d has taken a fork\n", get_time() \
 			- start_time, philosopher);
@@ -28,10 +29,10 @@ void	message(int philosopher, int type, uint64_t start_time, pthread_mutex_t wri
 		printf("%" PRIu64 " %d is thinking\n", get_time() \
 			- start_time, philosopher);
 	else
-		printf("%" PRIu64 " %d is dead\n", get_time() \
+		printf("********* %" PRIu64 " %d is dead\n", get_time() \
 			- start_time, philosopher);
 	if (type != DIE)
-		pthread_mutex_unlock(&write_lock);
+		pthread_mutex_unlock(write_lock);
 }
 
 int		parser(t_params *param, char **args)
@@ -51,7 +52,7 @@ int		parser(t_params *param, char **args)
 		return (1);
 	}
 	param->start_time = 0;
-	pthread_mutex_init(&(param->write_lock), NULL);
+	pthread_mutex_init(param->write_lock, NULL);
 	return (0);
 }
 
@@ -75,11 +76,12 @@ void	*philosophizing(void *args)
 	int			right;
 
 	self = (t_philo *)args;
-	while (self->params->start_time == 0)
-		usleep(50);
 	left = self->id - 1;
 	right = (left + 1) % self->params->nb_philo;
 	i = 1;
+	while (self->params->start_time == 0)
+		usleep(50);
+	self->time_death = get_time() + self->params->time_die;
 	while (i < self->params->nb_meal + 1)
 	{
 		if (left < right)
@@ -124,6 +126,9 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 		pthread_mutex_init(&(*forks)[i], NULL);
 		i++;
 	}
+	// parameters->write_lock = malloc(sizeof(pthread_mutex_t*));
+	// int ret = pthread_mutex_init(parameters->write_lock, NULL);
+	// printf("%d\n", ret);
 	*philosophers = malloc(sizeof(t_philo) * parameters->nb_philo);
 	i = 0;
 	while (i < parameters->nb_philo)
@@ -138,50 +143,47 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 		i++;
 	}
 	parameters->start_time = get_time();
-	i = 0;
-//	while (i < parameters->nb_philo)
-//	{
-//		pthread_join((*philosophers)[i].thread, NULL);
-//		i++;
-//	}
 }
 
-void	the_watcher(t_philo *philosophers, t_params params)
+void	*the_watcher(void *args)
 {
 	int	i;
 	int full_philosophers;
+	t_philo *philosophers;
+	uint64_t		start_time;
 
-	usleep(params.time_die * 1000);
+	
+	philosophers = (t_philo*)args;
+	start_time = philosophers[0].params->start_time;
+	usleep(philosophers[0].params->time_die * 1000);
 	i = 0;
 	full_philosophers = 0;
 	//printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
-	while (get_time() < philosophers[i].time_death)
+	while (1)
 	{
-		//printf("philo %d time death = %ld, time now = %ld\n", philosophers[i].id, philosophers[i].time_death, get_time());
-		if (philosophers[i].nb_meal >= params.nb_meal)
-			full_philosophers++;
-		if (i < params.nb_philo - 1)
-			i++;
-		else if (full_philosophers != params.nb_philo - 1)
+		if (get_time() > philosophers[i].time_death && philosophers[i].nb_meal < philosophers[i].params->nb_meal)
 		{
+			break;
+		}
+		// printf("BOUCLE WHILE full_philo = %d\n", full_philosophers);
+		if (philosophers[i].nb_meal >= philosophers[i].params->nb_meal)
+			full_philosophers++;
+		if (i < philosophers[i].params->nb_philo -1)
+			i++;
+		else if (full_philosophers != philosophers[i].params->nb_philo)
+		{
+			// printf("full_philo = %d\n", full_philosophers);
 			i = 0;
 			full_philosophers = 0;
 		}
-		else
+		else 
 			break;
+		
 	}
-	i = 0;
-	full_philosophers = 0;
-	while (i < params.nb_philo - 1)
-	{
-		if (philosophers[i].nb_meal >= params.nb_meal)
-			full_philosophers++;
-		i++;
-	}
-	printf("full_philo = %d\n", full_philosophers);
-	if (full_philosophers != params.nb_philo)
-		message(philosophers[i].id, DIE, params.start_time, params.write_lock);
-	return;
+	printf("out while full_philo = %d\n", full_philosophers);
+	if (full_philosophers != philosophers[i].params->nb_philo)
+		message(philosophers[i].id, DIE, philosophers[i].params->start_time, philosophers[i].params->write_lock);
+	return (NULL);
 }
 
 void	free_it_all(t_params params, pthread_mutex_t *forks, t_philo *philosophers)
@@ -205,11 +207,19 @@ int		main(int argc, char **argv)
 	t_params		parameters;
 	t_philo			*philosophers;
 	pthread_mutex_t	*forks;
+	pthread_t		watcher;
 
 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
 		return (usage(argv[0]));
 	initialisation(&parameters, &philosophers, &forks);
-	the_watcher(philosophers, parameters);
-	free_it_all(parameters, forks, philosophers);
+	pthread_create(&watcher, NULL, the_watcher, philosophers);
+	int i = 0;
+	pthread_join(watcher, NULL);
+	while (i < parameters.nb_philo)
+	{
+		pthread_join(*philosophers[i].thread, NULL);
+		i++;
+	}
+	// free_it_all(parameters, forks, philosophers);
 	return (0);
 }

@@ -23,7 +23,7 @@ typedef struct 		s_params
 	int				time_sleep;
 	int				nb_meal;
 	uint64_t		start_time;
-	pthread_mutex_t	write_lock;
+	pthread_mutex_t	*write_lock;
 }					t_params;
 
 typedef struct 		s_philo
