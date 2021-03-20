@@ -22,7 +22,7 @@ typedef struct 		s_params
 	int				time_eat;
 	int				time_sleep;
 	int				nb_meal;
-	uint64_t		start_time;
+	uint64_t		start;
 	pthread_mutex_t	*write_lock;
 	int				stop;
 }					t_params;
@@ -33,7 +33,7 @@ typedef struct 		s_philo
 	uint64_t		time_death;
 	int				nb_meal;
 	pthread_t		*thread;
-	t_params		*params;
+	t_params		*param;
 	pthread_mutex_t	**forks;
 }					t_philo;
 
