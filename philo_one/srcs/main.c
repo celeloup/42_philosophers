@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/20 16:29:45 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/20 20:03:16 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,15 +162,23 @@ void	initialisation(t_params *parameters, t_philo **philosophers, \
 	parameters->start = get_time();
 }
 
+void	did_someone_die(t_philo *philosophers, int i, int full_philosophers)
+{
+	if (full_philosophers != philosophers[i].param->nb_philo \
+		|| philosophers[0].param->nb_meal < 0)
+	{
+		message(philosophers[i].id, DIE, philosophers[i].param);
+		philosophers[0].param->stop = 0;
+	}
+}
+
 void	*watching(void *args)
 {
 	int			i;
 	int			full_philosophers;
 	t_philo		*philosophers;
-	uint64_t	start;
 
 	philosophers = (t_philo*)args;
-	start = philosophers[0].param->start;
 	usleep(philosophers[0].param->time_die * 1000);
 	i = 0;
 	full_philosophers = 0;
@@ -195,6 +203,7 @@ void	*watching(void *args)
 		else
 			i = 0;
 	}
+	//did_someone_die(philosophers, i, full_philosophers);
 	if (full_philosophers != philosophers[i].param->nb_philo \
 		|| philosophers[0].param->nb_meal < 0)
 	{
@@ -204,23 +213,22 @@ void	*watching(void *args)
 	return (NULL);
 }
 
-void	free_it_all(t_params params, pthread_mutex_t *forks, \
-	t_philo *philosophers, pthread_t *watcher)
+void	free_it_all(t_params params, pthread_mutex_t **forks, \
+	t_philo **philosophers, pthread_t **watcher)
 {
 	int i;
 
 	i = 0;
 	while (i < params.nb_philo)
 	{
-		pthread_detach(*philosophers[i].thread);
-		pthread_mutex_destroy(&forks[i]);
-		free(philosophers[i].thread);
+		pthread_mutex_destroy(&(*forks)[i]);
+		free((*philosophers)[i].thread);
 		i++;
 	}
-	pthread_detach(*watcher);
-	free(watcher);
-	free(forks);
-	free(philosophers);
+	free(*watcher);
+	free(*forks);
+	free(*philosophers);
+	pthread_mutex_destroy(params.write_lock);
 	free(params.write_lock);
 }
 
@@ -244,6 +252,6 @@ int		main(int argc, char **argv)
 		pthread_join(*philosophers[i].thread, NULL);
 		i++;
 	}
-	free_it_all(parameters, forks, philosophers, the_watcher);
+	free_it_all(parameters, &forks, &philosophers, &the_watcher);
 	return (0);
 }
