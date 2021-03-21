@@ -1,6 +1,6 @@
 NAME			= philo_one
 
-SRCS_FILE		= main.c utils.c
+SRCS_FILE		= main.c utils.c philosopher.c parsing.c
 
 SRCS			= $(addprefix $(SRCS_DIR), $(SRCS_FILE))
 OBJS			= $(addprefix $(OBJS_DIR), $(SRCS_FILE:.c=.o))
@@ -11,7 +11,7 @@ INCLUDES_DIR	= ./
 
 HEADER			= $(INCLUDES_DIR)philo_one.h
 
-CFLAGS			= -Wall -Werror -Wextra #-fsanitize=address,undefined
+CFLAGS			= -Wall -Werror -Wextra -fsanitize=address,undefined
 CC				= gcc
 
 INCLUDES	= $(addprefix -I, $(INCLUDES_DIR))

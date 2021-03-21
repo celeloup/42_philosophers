@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:17 by celeloup          #+#    #+#             */
-/*   Updated: 2021/03/12 14:33:18 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/03/21 16:25:33 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,10 +33,13 @@ int
 	if (!str)
 		return (0);
 	i = 0;
-	while (str[i] == '\t' || str[i] == '\n' || str[i] == '\v' ||
-			str[i] == '\f' || str[i] == '\r' || str[i] == ' ')
+	while (str[i] == '\t' || str[i] == '\n' || str[i] == '\v'
+		|| str[i] == '\f' || str[i] == '\r' || str[i] == ' ')
 		i++;
-	is_neg = (str[i] == '-') ? -1 : 1;
+	if (str[i] == '-')
+		is_neg = -1;
+	else
+		is_neg = 1;
 	if (is_neg == -1 || str[i] == '+')
 		i++;
 	res = 0;
