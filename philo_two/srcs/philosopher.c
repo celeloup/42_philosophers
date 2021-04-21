@@ -6,28 +6,22 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/21 16:39:49 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/21 11:50:13 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/21 15:56:56 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../philo_one.h"
+#include "../philo_two.h"
 
 void	*philosophizing(void *args)
 {
 	t_philo		*self;
-	int			left;
-	int			right;
 
 	self = (t_philo *)args;
-	left = self->id - 1;
-	right = (left + 1) % self->param->nb_philo;
-	while (self->param->start == 0)
-		usleep(50);
 	usleep(self->param->time_eat * (self->id % 2) / 2);
 	self->time_death = get_time() + self->param->time_die;
 	while (self->param->stop)
 	{
-		eating(self, left, right);
+		eating(self);
 		sleeping(self);
 		message(self->id, THINK, self->param);
 		if (self->param->nb_meal > 0)
@@ -38,22 +32,14 @@ void	*philosophizing(void *args)
 	return (NULL);
 }
 
-void	eating(t_philo *self, int left, int right)
+void	eating(t_philo *self)
 {
 	uint64_t	done_activity;
 
 	if (self->param->stop == 0)
 		return ;
-	if (left < right)
-	{
-		pthread_mutex_lock(&(*self->forks)[left]);
-		pthread_mutex_lock(&(*self->forks)[right]);
-	}
-	else
-	{
-		pthread_mutex_lock(&(*self->forks)[right]);
-		pthread_mutex_lock(&(*self->forks)[left]);
-	}
+	sem_wait(*(self->forks));
+	sem_wait(*(self->forks));
 	message(self->id, FORK, self->param);
 	message(self->id, FORK, self->param);
 	done_activity = get_time() + self->param->time_eat;
@@ -61,8 +47,8 @@ void	eating(t_philo *self, int left, int right)
 	message(self->id, EAT, self->param);
 	while (done_activity > get_time())
 		usleep(50);
-	pthread_mutex_unlock(&(*self->forks)[left]);
-	pthread_mutex_unlock(&(*self->forks)[right]);
+	sem_post(*(self->forks));
+	sem_post(*(self->forks));
 }
 
 void	sleeping(t_philo *self)
