@@ -6,35 +6,170 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/21 16:49:43 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/23 15:31:20 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philo_three.h"
 
-int	main(int argc, char **argv)
-{
-	t_params		parameters;
-	t_philo			*philosophers;
-	sem_t			*forks;
-	pthread_t		*the_watcher;
-	int				i;
+#include <signal.h>
 
-	if (argc < 5 || argc > 6 || parser(&parameters, argv))
-		return (usage(argv[0]));
-	initialisation(&parameters, &philosophers, &forks);
-	the_watcher = malloc(sizeof(pthread_t *));
-	pthread_create(the_watcher, NULL, watching, philosophers);
-	i = 0;
-	pthread_join(*the_watcher, NULL);
-	while (i < parameters.nb_philo)
-	{
-		pthread_join(*philosophers[i].thread, NULL);
-		i++;
-	}
-	free_it_all(parameters, &forks, &philosophers, &the_watcher);
+int	message_test(int philosopher, int type, uint64_t time_start, sem_t **write_lock)
+{
+	sem_wait(*write_lock);
+	if (type == FORK)
+		printf("%" PRIu64 " %d has taken a fork\n", get_time()
+			- time_start, philosopher);
+	else if (type == EAT)
+		printf("%" PRIu64 " %d is eating\n", get_time()
+			- time_start, philosopher);
+	else if (type == SLEEP)
+		printf("%" PRIu64 " %d is sleeping\n", get_time()
+			- time_start, philosopher);
+	else if (type == THINK)
+		printf("%" PRIu64 " %d is thinking\n", get_time()
+			- time_start, philosopher);
+	else
+		printf("%" PRIu64 " %d is dead\n", get_time()
+			- time_start, philosopher);
+	if (type != DIE)
+		sem_post(*write_lock);
 	return (0);
 }
+
+int eat_test(int id, int time_eat, uint64_t time_start, uint64_t *time_to_die, sem_t **forks, sem_t **write_lock) {
+	sem_wait(*forks);
+	if (*time_to_die > get_time())
+		sem_wait(*forks);
+	else
+		return (-1);
+	// printf("%" PRIu64 " %d is eating\n", get_time() - time_start, id);
+	message_test(id, EAT, time_start, write_lock);
+	uint64_t done = get_time() + time_eat;
+	*time_to_die = get_time() + 800;
+	while(done > get_time())
+	{
+		if (*time_to_die < get_time())
+			break ;
+		usleep(10);
+	}
+	sem_post(*forks);
+	sem_post(*forks);
+	if (*time_to_die < get_time())
+			return (-1);
+	return (0);
+}
+
+int sleep_test(int id, int time_sleep, uint64_t time_start, uint64_t time_to_die, sem_t **write_lock) {
+	// printf("%" PRIu64 " %d is sleeping\n", get_time() - time_start, id);
+	message_test(id, SLEEP, time_start, write_lock);
+	uint64_t done = get_time() + time_sleep;
+	while(done > get_time())
+	{
+		if (time_to_die < get_time())
+			return (-1);
+		usleep(10);
+	}
+	return (0);
+}
+
+int philosophising_test(int id, int time_die, int time_eat, int time_sleep, uint64_t time_start, sem_t **forks, sem_t **write_lock)
+{
+	uint64_t time_to_die = get_time() + time_die;
+	usleep(100);
+
+	while (1)
+	{
+		if (eat_test(id, time_eat, time_start, &time_to_die, forks, write_lock) == -1)
+		{
+			// printf("%" PRIu64 " %d is dead -> BAD EAT\n", get_time() - time_start, id);
+			message_test(id, DIE, time_start, write_lock);
+			exit(EXIT_FAILURE);
+		}
+		if (sleep_test(id, time_sleep, time_start, time_to_die, write_lock) == -1)
+		{
+			// printf("%" PRIu64 " %d is dead -> BAD SLEEP\n", get_time() - time_start, id);
+			message_test(id, DIE, time_start, write_lock);
+			exit(EXIT_FAILURE);
+		}
+		message_test(id, THINK, time_start, write_lock);
+		// printf("%" PRIu64 " %d is thinking\n", get_time() - time_start, id);
+	}
+	exit(EXIT_FAILURE);
+}
+
+int main()
+{
+	int time_die = 800;
+	int time_eat = 200;
+	int time_sleep = 200;
+	int nb_philo = 5;
+	pid_t process = 1;
+	sem_t *forks;
+	int test[nb_philo];
+
+	sem_unlink("forks");
+	forks = sem_open("forks", O_CREAT, 644, nb_philo);
+
+	sem_unlink("write");
+	sem_t *write_lock = sem_open("write", O_CREAT, 644, 1);
+
+	int i = 1;
+	uint64_t start_time = get_time();
+	while (i < nb_philo + 1 && process != 0)
+	{
+		process = fork();
+		test[i - 1] = process;
+		if (process == -1)
+			exit(EXIT_FAILURE);
+		else if (process == 0)
+			philosophising_test(i, time_die, time_eat, time_sleep, start_time, &forks, &write_lock);
+		else
+			i++;
+	}
+	int status;
+	i = 0;
+	while (i < nb_philo)
+	{
+		waitpid(-1, &status, 0);
+		if (status == 256)
+			break;
+		i++;
+	}
+	i = 0;
+	while (i < nb_philo)
+	{
+		kill(test[i], SIGTERM);
+		i++;
+	}
+	printf("hello\n");
+	sem_close(forks);
+}
+
+
+// int	main(int argc, char **argv)
+// {
+// 	t_params		parameters;
+// 	t_philo			*philosophers;
+// 	sem_t			*forks;
+// 	pthread_t		*the_watcher;
+// 	int				i;
+
+// 	if (argc < 5 || argc > 6 || parser(&parameters, argv))
+// 		return (usage(argv[0]));
+// 	initialisation(&parameters, &philosophers, &forks);
+// 	the_watcher = malloc(sizeof(pthread_t *));
+// 	pthread_create(the_watcher, NULL, watching, philosophers);
+// 	i = 0;
+// 	pthread_join(*the_watcher, NULL);
+// 	while (i < parameters.nb_philo)
+// 	{
+// 		pthread_join(*philosophers[i].thread, NULL);
+// 		i++;
+// 	}
+// 	free_it_all(parameters, &forks, &philosophers, &the_watcher);
+// 	return (0);
+// }
 
 void	*watching(void *args)
 {
