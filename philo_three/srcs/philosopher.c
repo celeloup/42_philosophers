@@ -6,66 +6,100 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/21 16:39:49 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/21 16:49:54 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/26 17:30:20 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philo_three.h"
 
-void	*philosophizing(void *args)
+void *monitoring_thread(void *death_event)
 {
-	t_philo		*self;
+	sem_t *death = (sem_t*)death_event;
+	sem_wait(death);
+	// printf("i know we dead !\n");
+	exit(0);
+	return(NULL);
+}
 
-	self = (t_philo *)args;
-	usleep(self->param->time_eat * (self->id % 2) / 2);
-	self->time_death = get_time() + self->param->time_die;
-	while (self->param->stop)
+void	philosophizing(int id, t_params *param)
+{
+	uint64_t	time_death;
+	pthread_t	monitor;
+	int			nb_meal_ate;
+
+	nb_meal_ate = 0;
+	pthread_create(&monitor, NULL, monitoring_thread, param->death_event);
+	time_death = get_time() + param->time_die;
+	usleep(param->time_eat * (id % 2) / 2);
+	time_death = get_time() + param->time_die;
+	while (1)
 	{
-		eating(self);
-		sleeping(self);
-		message(self->id, THINK, self->param);
-		if (self->param->nb_meal > 0)
-			self->nb_meal++;
-		if (self->param->nb_meal > 0 && self->nb_meal >= self->param->nb_meal)
-			return (NULL);
+		if (eating(param, id, &time_death) == -1)
+		{
+			message(id, DIE, param);
+			printf("-------------- BAD EAT\n");
+			exit(EXIT_FAILURE);
+		}
+		if (sleeping(param, id, time_death) == -1)
+		{
+			message(id, DIE, param);
+			printf("-------------- BAD SLEEP\n");
+			exit(EXIT_FAILURE);
+		}
+		message(id, THINK, param);
+		if (param->nb_meal > 0)
+			nb_meal_ate++;
+		if (nb_meal_ate == param->nb_meal)
+			break;
 	}
-	return (NULL);
+	exit(EXIT_FAILURE);
 }
 
-void	eating(t_philo *self)
+int		eating(t_params *param, int id, uint64_t *time_death)
 {
-	uint64_t	done_activity;
+	uint64_t done;
 
-	if (self->param->stop == 0)
-		return ;
-	sem_wait(*(self->forks));
-	sem_wait(*(self->forks));
-	message(self->id, FORK, self->param);
-	message(self->id, FORK, self->param);
-	done_activity = get_time() + self->param->time_eat;
-	self->time_death = get_time() + self->param->time_die;
-	message(self->id, EAT, self->param);
-	while (done_activity > get_time())
-		usleep(50);
-	sem_post(*(self->forks));
-	sem_post(*(self->forks));
+	sem_wait(param->forks);
+	if (*time_death > get_time())
+		sem_wait(param->forks);
+	else
+		return (-1);
+	message(id, FORK, param);
+	message(id, FORK, param);
+	message(id, EAT, param);
+	done = get_time() + param->time_eat;
+	*time_death = get_time() + 800;
+	while(done > get_time())
+	{
+		if (*time_death < get_time())
+			break ;
+		usleep(80);
+	}
+	sem_post(param->forks);
+	sem_post(param->forks);
+	if (*time_death < get_time())
+			return (-1);
+	return (0);
 }
 
-void	sleeping(t_philo *self)
+int		sleeping(t_params *param, int id, uint64_t time_death)
 {
-	uint64_t	done_activity;
+	uint64_t done;
 
-	message(self->id, SLEEP, self->param);
-	done_activity = get_time() + self->param->time_sleep;
-	while (done_activity > get_time())
-		usleep(50);
+	message(id, SLEEP, param);
+	done = get_time() + param->time_sleep;
+	while(done > get_time())
+	{
+		if (time_death < get_time())
+			return (-1);
+		usleep(80);
+	}
+	return (0);
 }
 
 int	message(int philosopher, int type, t_params *params)
 {
-	if (params->stop == 0)
-		return (1);
-	pthread_mutex_lock(params->write_lock);
+	sem_wait(params->write_lock);
 	if (type == FORK)
 		printf("%" PRIu64 " %d has taken a fork\n", get_time()
 			- params->start, philosopher);
@@ -82,6 +116,6 @@ int	message(int philosopher, int type, t_params *params)
 		printf("%" PRIu64 " %d is dead\n", get_time()
 			- params->start, philosopher);
 	if (type != DIE)
-		pthread_mutex_unlock(params->write_lock);
+		sem_post(params->write_lock);
 	return (0);
 }

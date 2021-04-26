@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/21 16:38:11 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/21 16:49:49 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/26 17:33:20 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,12 @@ int	parser(t_params *param, char **args)
 		printf("Error: wrong argument.\n");
 		return (1);
 	}
-	param->start = 0;
-	param->write_lock = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(param->write_lock, NULL);
-	param->stop = 1;
+	sem_unlink("write");
+	param->write_lock = sem_open("write", O_CREAT, 644, 1);
+	sem_unlink("forks");
+	param->forks = sem_open("forks", O_CREAT, 644, param->nb_philo);
+	sem_unlink("death");
+	param->death_event = sem_open("death", O_CREAT, 644, param->nb_philo);
 	return (0);
 }
 
@@ -46,46 +48,35 @@ int	usage(char *programme)
 	return (EXIT_FAILURE);
 }
 
-void	initialisation(t_params *parameters, t_philo **philosophers,
-	sem_t **forks)
+void	initialisation(t_params *param)
 {
 	int	i;
+	pid_t process;
 
-	sem_unlink("forks");
-	*forks = sem_open("forks", O_CREAT, 644, parameters->nb_philo);
-	if (*forks == SEM_FAILED)
-		printf("NULL !");
-	*philosophers = malloc(sizeof(t_philo) * parameters->nb_philo);
 	i = 0;
-	parameters->start = get_time();
-	while (i < parameters->nb_philo)
+	process = 1;
+	while (i < param->nb_philo)
 	{
-		(*philosophers)[i].id = i + 1;
-		(*philosophers)[i].time_death = 0;
-		(*philosophers)[i].nb_meal = 0;
-		(*philosophers)[i].thread = malloc(sizeof(pthread_t *));
-		(*philosophers)[i].param = parameters;
-		(*philosophers)[i].forks = forks;
-		pthread_create((*philosophers)[i].thread, NULL, philosophizing,
-			&(*philosophers)[i]);
+		sem_wait(param->death_event);
 		i++;
+	}
+	i = 1;
+	param->start = get_time();
+	while (i < param->nb_philo + 1 && process != 0)
+	{
+		process = fork();
+		if (process == -1)
+			exit(EXIT_FAILURE);
+		else if (process == 0)
+			philosophizing(i, param);
+		else
+			i++;
 	}
 }
 
-void	free_it_all(t_params params, sem_t **forks,
-	t_philo **philosophers, pthread_t **watcher)
+void	free_it_all(t_params param)
 {
-	int	i;
-
-	i = 0;
-	while (i < params.nb_philo)
-	{
-		free((*philosophers)[i].thread);
-		i++;
-	}
-	free(*watcher);
-	sem_close(*forks);
-	free(*philosophers);
-	pthread_mutex_destroy(params.write_lock);
-	free(params.write_lock);
+	sem_close(param.forks);
+	sem_close(param.write_lock);
+	sem_close(param.death_event);
 }

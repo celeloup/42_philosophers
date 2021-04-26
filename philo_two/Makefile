@@ -11,7 +11,7 @@ INCLUDES_DIR	= ./
 
 HEADER			= $(INCLUDES_DIR)philo_two.h
 
-CFLAGS			= -Wall -Werror -Wextra -fsanitize=address,undefined
+CFLAGS			= -Wall -Werror -Wextra
 CC				= gcc
 
 INCLUDES	= $(addprefix -I, $(INCLUDES_DIR))

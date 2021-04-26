@@ -24,8 +24,9 @@ typedef struct s_params
 	int				time_sleep;
 	int				nb_meal;
 	uint64_t		start;
-	pthread_mutex_t	*write_lock;
-	int				stop;
+	sem_t			*write_lock;
+	sem_t			*forks;
+	sem_t			*death_event;
 }					t_params;
 
 typedef struct s_philo
@@ -51,17 +52,15 @@ void		did_someone_die(t_philo **philosophers, int i,
 				int full_philosophers);
 
 /**** PHILOSOPHER.C *****/
-void		*philosophizing(void *args);
-void		eating(t_philo *self);
-void		sleeping(t_philo *self);
+void		philosophizing(int id, t_params *param);
+int			eating(t_params *param, int id, uint64_t *time_death);
+int			sleeping(t_params *param, int id, uint64_t time_death);
 int			message(int philosopher, int type, t_params *params);
 
 /**** PARSING.C *****/
 int			parser(t_params *param, char **args);
 int			usage(char *programme);
-void		initialisation(t_params *parameters, t_philo **philosophers,
-				sem_t **forks);
-void		free_it_all(t_params params, sem_t **forks,
-				t_philo **philosophers, pthread_t **watcher);
+void		initialisation(t_params *parameters);
+void		free_it_all(t_params param);
 
 #endif
