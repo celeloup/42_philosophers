@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/23 15:31:20 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/26 12:11:02 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,15 +43,14 @@ int eat_test(int id, int time_eat, uint64_t time_start, uint64_t *time_to_die, s
 		sem_wait(*forks);
 	else
 		return (-1);
-	// printf("%" PRIu64 " %d is eating\n", get_time() - time_start, id);
 	message_test(id, EAT, time_start, write_lock);
 	uint64_t done = get_time() + time_eat;
-	*time_to_die = get_time() + 800;
+	*time_to_die = get_time() + 100;
 	while(done > get_time())
 	{
 		if (*time_to_die < get_time())
 			break ;
-		usleep(10);
+		usleep(50);
 	}
 	sem_post(*forks);
 	sem_post(*forks);
@@ -61,49 +60,54 @@ int eat_test(int id, int time_eat, uint64_t time_start, uint64_t *time_to_die, s
 }
 
 int sleep_test(int id, int time_sleep, uint64_t time_start, uint64_t time_to_die, sem_t **write_lock) {
-	// printf("%" PRIu64 " %d is sleeping\n", get_time() - time_start, id);
 	message_test(id, SLEEP, time_start, write_lock);
 	uint64_t done = get_time() + time_sleep;
 	while(done > get_time())
 	{
 		if (time_to_die < get_time())
 			return (-1);
-		usleep(10);
+		usleep(50);
 	}
 	return (0);
 }
 
-int philosophising_test(int id, int time_die, int time_eat, int time_sleep, uint64_t time_start, sem_t **forks, sem_t **write_lock)
+void *monitoring_test(void *death_notice)
 {
-	uint64_t time_to_die = get_time() + time_die;
-	usleep(100);
+	sem_t *death = (sem_t*)death_notice;
+	sem_wait(death);
+	printf("i know we dead !\n");
+	exit(0);
+	return(NULL);
+}
 
+int philosophising_test(int id, int time_die, int time_eat, int time_sleep, uint64_t time_start, sem_t **forks, sem_t **write_lock, sem_t *death_notice)
+{
+	pthread_t monitor;
+	pthread_create(&monitor, NULL, monitoring_test, death_notice);
+	uint64_t time_to_die = get_time() + time_die;
 	while (1)
 	{
 		if (eat_test(id, time_eat, time_start, &time_to_die, forks, write_lock) == -1)
 		{
-			// printf("%" PRIu64 " %d is dead -> BAD EAT\n", get_time() - time_start, id);
 			message_test(id, DIE, time_start, write_lock);
 			exit(EXIT_FAILURE);
 		}
 		if (sleep_test(id, time_sleep, time_start, time_to_die, write_lock) == -1)
 		{
-			// printf("%" PRIu64 " %d is dead -> BAD SLEEP\n", get_time() - time_start, id);
 			message_test(id, DIE, time_start, write_lock);
 			exit(EXIT_FAILURE);
 		}
 		message_test(id, THINK, time_start, write_lock);
-		// printf("%" PRIu64 " %d is thinking\n", get_time() - time_start, id);
 	}
 	exit(EXIT_FAILURE);
 }
 
 int main()
 {
-	int time_die = 800;
+	int time_die = 100;
 	int time_eat = 200;
 	int time_sleep = 200;
-	int nb_philo = 5;
+	int nb_philo = 6;
 	pid_t process = 1;
 	sem_t *forks;
 	int test[nb_philo];
@@ -114,7 +118,17 @@ int main()
 	sem_unlink("write");
 	sem_t *write_lock = sem_open("write", O_CREAT, 644, 1);
 
-	int i = 1;
+	sem_unlink("death");
+	sem_t *death_event = sem_open("death", O_CREAT, 644, nb_philo);
+
+	int i;
+	i = 0;
+	while (i < nb_philo)
+	{
+		sem_wait(death_event);
+		i++;
+	}
+	i = 1;
 	uint64_t start_time = get_time();
 	while (i < nb_philo + 1 && process != 0)
 	{
@@ -123,7 +137,7 @@ int main()
 		if (process == -1)
 			exit(EXIT_FAILURE);
 		else if (process == 0)
-			philosophising_test(i, time_die, time_eat, time_sleep, start_time, &forks, &write_lock);
+			philosophising_test(i, time_die, time_eat, time_sleep, start_time, &forks, &write_lock, death_event);
 		else
 			i++;
 	}
@@ -139,11 +153,14 @@ int main()
 	i = 0;
 	while (i < nb_philo)
 	{
-		kill(test[i], SIGTERM);
+		sem_post(death_event);
+		// kill(test[i], SIGTERM);
 		i++;
 	}
-	printf("hello\n");
+	printf("hello :)\n");
 	sem_close(forks);
+	sem_close(write_lock);
+	sem_close(death_event);
 }
 
 
