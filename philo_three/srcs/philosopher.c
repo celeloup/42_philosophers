@@ -6,83 +6,102 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/21 16:39:49 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/26 17:30:20 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/27 12:31:16 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../philo_three.h"
 
-void *monitoring_thread(void *death_event)
+void *didAnyoneDie(void *death_event)
 {
 	sem_t *death = (sem_t*)death_event;
 	sem_wait(death);
-	// printf("i know we dead !\n");
 	exit(0);
 	return(NULL);
 }
 
-void	philosophizing(int id, t_params *param)
+void *monitoring(void *param)
 {
-	uint64_t	time_death;
-	pthread_t	monitor;
-	int			nb_meal_ate;
-
-	nb_meal_ate = 0;
-	pthread_create(&monitor, NULL, monitoring_thread, param->death_event);
-	time_death = get_time() + param->time_die;
-	usleep(param->time_eat * (id % 2) / 2);
-	time_death = get_time() + param->time_die;
+	t_params *parameters = (t_params*)param;
+	uint64_t time = parameters->time_death;
 	while (1)
 	{
-		if (eating(param, id, &time_death) == -1)
+		if (time < get_time())
 		{
-			message(id, DIE, param);
-			printf("-------------- BAD EAT\n");
+			// printf("DEAAADDD !!\n");
+			message(parameters->id, DIE, param);
 			exit(EXIT_FAILURE);
 		}
-		if (sleeping(param, id, time_death) == -1)
+		usleep(100);
+		time = parameters->time_death;
+	}
+}
+
+void	philosophizing(int id, t_params *param)
+{
+	uint64_t	time_death_test;
+	// pthread_t	death_notice;
+	// int			nb_meal_ate;
+	// pthread_t	monitor;
+
+	param->nb_meal_ate = 0;
+	param->id = id;
+	pthread_create(&(param->death_notice), NULL, didAnyoneDie, param->death_event);
+	time_death_test = get_time() + param->time_die;
+	param->time_death = time_death_test;
+	pthread_create(&(param->monitor), NULL, monitoring, param);
+	// usleep(param->time_eat * (id % 2) / 2);
+	while (1)
+	{
+		if (eating(param, id) == -1)
 		{
 			message(id, DIE, param);
-			printf("-------------- BAD SLEEP\n");
-			exit(EXIT_FAILURE);
+			// printf("-------------- BAD EAT\n");
+			// exit(EXIT_FAILURE);
+		}
+		if (sleeping(param, id) == -1)
+		{
+			message(id, DIE, param);
+			// printf("-------------- BAD SLEEP\n");
+			// exit(EXIT_FAILURE);
 		}
 		message(id, THINK, param);
 		if (param->nb_meal > 0)
-			nb_meal_ate++;
-		if (nb_meal_ate == param->nb_meal)
+			param->nb_meal_ate++;
+		if (param->nb_meal_ate == param->nb_meal)
 			break;
 	}
-	exit(EXIT_FAILURE);
+	exit(EXIT_SUCCESS);
 }
 
-int		eating(t_params *param, int id, uint64_t *time_death)
+int		eating(t_params *param, int id)
 {
 	uint64_t done;
 
 	sem_wait(param->forks);
-	if (*time_death > get_time())
-		sem_wait(param->forks);
-	else
-		return (-1);
 	message(id, FORK, param);
+	// if (*time_death > get_time())
+		sem_wait(param->forks);
+	// else
+		// return (-1);
 	message(id, FORK, param);
 	message(id, EAT, param);
 	done = get_time() + param->time_eat;
-	*time_death = get_time() + 800;
+	param->time_death = get_time() + param->time_die;
 	while(done > get_time())
 	{
-		if (*time_death < get_time())
-			break ;
+		// if (*time_death < get_time())
+			// break ;
 		usleep(80);
 	}
 	sem_post(param->forks);
 	sem_post(param->forks);
-	if (*time_death < get_time())
-			return (-1);
+	// if (*time_death < get_time())
+		// return (-1);
 	return (0);
 }
 
-int		sleeping(t_params *param, int id, uint64_t time_death)
+int		sleeping(t_params *param, int id)
 {
 	uint64_t done;
 
@@ -90,8 +109,8 @@ int		sleeping(t_params *param, int id, uint64_t time_death)
 	done = get_time() + param->time_sleep;
 	while(done > get_time())
 	{
-		if (time_death < get_time())
-			return (-1);
+		// if (param->time_death < get_time())
+		// 	return (-1);
 		usleep(80);
 	}
 	return (0);

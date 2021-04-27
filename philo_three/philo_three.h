@@ -23,10 +23,15 @@ typedef struct s_params
 	int				time_eat;
 	int				time_sleep;
 	int				nb_meal;
+	int				nb_meal_ate;
+	int				id;
 	uint64_t		start;
+	uint64_t		time_death;
 	sem_t			*write_lock;
 	sem_t			*forks;
 	sem_t			*death_event;
+	pthread_t		death_notice;
+	pthread_t		monitor;
 }					t_params;
 
 typedef struct s_philo
@@ -47,14 +52,14 @@ uint64_t	get_time(void);
 
 /**** MAIN.C ****/
 void		*watching(void *args);
-int			monitoring(t_philo **philo, int *full, int *i);
+void		*monitoring(void *time_death);
 void		did_someone_die(t_philo **philosophers, int i,
 				int full_philosophers);
 
 /**** PHILOSOPHER.C *****/
 void		philosophizing(int id, t_params *param);
-int			eating(t_params *param, int id, uint64_t *time_death);
-int			sleeping(t_params *param, int id, uint64_t time_death);
+int			eating(t_params *param, int id);
+int			sleeping(t_params *param, int id);
 int			message(int philosopher, int type, t_params *params);
 
 /**** PARSING.C *****/

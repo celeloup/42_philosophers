@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/26 17:34:56 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/27 10:57:09 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,7 +190,7 @@ int	main(int argc, char **argv)
 		sem_post(parameters.death_event);
 		i++;
 	}
-	printf("hello :)\n");
+	// printf("hello :)\n");
 	free_it_all(parameters);
 	return (0);
 }
