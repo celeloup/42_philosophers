@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/21 16:39:49 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/27 12:31:16 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/27 16:54:17 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,17 +14,14 @@
 
 void	philosophizing(int id, t_params *param)
 {
-	uint64_t	time_death_test;
+	pthread_t		death_notice;
+	pthread_t		monitor;
 
 	param->nb_meal_ate = 0;
 	param->id = id;
-	pthread_create(&(param->death_notice), NULL, \
-		did_anyone_die, param->death_event);
-	pthread_detach(param->death_notice);
-	time_death_test = get_time() + param->time_die;
-	param->time_death = time_death_test;
-	pthread_create(&(param->monitor), NULL, monitoring, param);
-	pthread_detach(param->monitor);
+	pthread_create(&death_notice, NULL, did_anyone_die, param->death_event);
+	param->time_death = get_time() + param->time_die;
+	pthread_create(&monitor, NULL, monitoring, param);
 	while (1)
 	{
 		if (eating(param, id) == -1)

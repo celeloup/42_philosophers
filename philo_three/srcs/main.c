@@ -6,7 +6,7 @@
 /*   By: celeloup <celeloup@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/03/12 14:33:09 by celeloup          #+#    #+#             */
-/*   Updated: 2021/04/27 10:57:09 by celeloup         ###   ########.fr       */
+/*   Updated: 2021/04/27 17:01:13 by celeloup         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,6 @@ void	*monitoring(void *param)
 		if (time < get_time())
 		{
 			message(parameters->id, DIE, param);
-			free_it_all(*parameters);
 			exit(EXIT_FAILURE);
 		}
 		usleep(100);
