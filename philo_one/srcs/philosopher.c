@@ -75,7 +75,7 @@ void	sleeping(t_philo *self)
 		usleep(50);
 }
 
-int	message(int philosopher, int type, t_params *params)
+int		message(int philosopher, int type, t_params *params)
 {
 	if (params->stop == 0)
 		return (1);

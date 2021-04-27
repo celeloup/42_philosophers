@@ -61,11 +61,11 @@ void	sleeping(t_philo *self)
 		usleep(50);
 }
 
-int	message(int philosopher, int type, t_params *params)
+int		message(int philosopher, int type, t_params *params)
 {
 	if (params->stop == 0)
 		return (1);
-	pthread_mutex_lock(params->write_lock);
+	sem_wait(params->write_lock);
 	if (type == FORK)
 		printf("%" PRIu64 " %d has taken a fork\n", get_time()
 			- params->start, philosopher);
@@ -82,6 +82,6 @@ int	message(int philosopher, int type, t_params *params)
 		printf("%" PRIu64 " %d is dead\n", get_time()
 			- params->start, philosopher);
 	if (type != DIE)
-		pthread_mutex_unlock(params->write_lock);
+		sem_post(params->write_lock);
 	return (0);
 }

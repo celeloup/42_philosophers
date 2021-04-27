@@ -12,7 +12,7 @@
 
 #include "../philo_three.h"
 
-int	parser(t_params *param, char **args)
+int		parser(t_params *param, char **args)
 {
 	param->nb_philo = ft_atoi(args[1]);
 	param->time_die = ft_atoi(args[2]);
@@ -37,7 +37,7 @@ int	parser(t_params *param, char **args)
 	return (0);
 }
 
-int	usage(char *programme)
+int		usage(char *programme)
 {
 	printf("usage: %s nb_philo time_die time_eat time_sleep [nb_meal]\n\
 	nb_philo: number of philosophers (and forks)\n\
@@ -50,8 +50,8 @@ int	usage(char *programme)
 
 void	initialisation(t_params *param)
 {
-	int	i;
-	pid_t process;
+	int		i;
+	pid_t	process;
 
 	i = 0;
 	process = 1;

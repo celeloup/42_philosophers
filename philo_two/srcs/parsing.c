@@ -12,7 +12,7 @@
 
 #include "../philo_two.h"
 
-int	parser(t_params *param, char **args)
+int		parser(t_params *param, char **args)
 {
 	param->nb_philo = ft_atoi(args[1]);
 	param->time_die = ft_atoi(args[2]);
@@ -29,13 +29,13 @@ int	parser(t_params *param, char **args)
 		return (1);
 	}
 	param->start = 0;
-	param->write_lock = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(param->write_lock, NULL);
+	sem_unlink("write");
+	param->write_lock = sem_open("write", O_CREAT, 644, 1);
 	param->stop = 1;
 	return (0);
 }
 
-int	usage(char *programme)
+int		usage(char *programme)
 {
 	printf("usage: %s nb_philo time_die time_eat time_sleep [nb_meal]\n\
 	nb_philo: number of philosophers (and forks)\n\
@@ -72,7 +72,7 @@ void	initialisation(t_params *parameters, t_philo **philosophers,
 	}
 }
 
-void	free_it_all(t_params params, sem_t **forks,
+void	free_it_all(t_params params, sem_t *forks,
 	t_philo **philosophers, pthread_t **watcher)
 {
 	int	i;
@@ -84,8 +84,7 @@ void	free_it_all(t_params params, sem_t **forks,
 		i++;
 	}
 	free(*watcher);
-	sem_close(*forks);
+	sem_close(forks);
+	sem_close(params.write_lock);
 	free(*philosophers);
-	pthread_mutex_destroy(params.write_lock);
-	free(params.write_lock);
 }

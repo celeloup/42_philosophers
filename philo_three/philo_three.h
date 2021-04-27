@@ -2,6 +2,10 @@
 # define PHILO_THREE_H
 
 # include <stdio.h>
+# include <sys/wait.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <fcntl.h>
 # include <unistd.h>
 # include <pthread.h>
 # include <sys/time.h>
@@ -16,7 +20,7 @@
 # define THINK 3
 # define DIE 4
 
-typedef struct s_params
+typedef struct		s_params
 {
 	int				nb_philo;
 	int				time_die;
@@ -34,38 +38,22 @@ typedef struct s_params
 	pthread_t		monitor;
 }					t_params;
 
-typedef struct s_philo
-{
-	int				id;
-	uint64_t		time_death;
-	int				nb_meal;
-	pthread_t		*thread;
-	t_params		*param;
-	sem_t			**forks;
-}					t_philo;
+int					ft_strlen(char const *str);
+int					ft_atoi(char const *str);
+void				ft_putnbr_fd(uint64_t n, int fd);
+uint64_t			get_time(void);
 
-/**** UTILS.c ****/
-int			ft_strlen(char const *str);
-int			ft_atoi(char const *str);
-void		ft_putnbr_fd(uint64_t n, int fd);
-uint64_t	get_time(void);
+void				*monitoring(void *param);
+void				*did_anyone_die(void *death_event);
 
-/**** MAIN.C ****/
-void		*watching(void *args);
-void		*monitoring(void *time_death);
-void		did_someone_die(t_philo **philosophers, int i,
-				int full_philosophers);
+void				philosophizing(int id, t_params *param);
+int					eating(t_params *param, int id);
+int					sleeping(t_params *param, int id);
+int					message(int philosopher, int type, t_params *params);
 
-/**** PHILOSOPHER.C *****/
-void		philosophizing(int id, t_params *param);
-int			eating(t_params *param, int id);
-int			sleeping(t_params *param, int id);
-int			message(int philosopher, int type, t_params *params);
-
-/**** PARSING.C *****/
-int			parser(t_params *param, char **args);
-int			usage(char *programme);
-void		initialisation(t_params *parameters);
-void		free_it_all(t_params param);
+int					parser(t_params *param, char **args);
+int					usage(char *programme);
+void				initialisation(t_params *parameters);
+void				free_it_all(t_params param);
 
 #endif

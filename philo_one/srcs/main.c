@@ -12,7 +12,7 @@
 
 #include "../philo_one.h"
 
-int	main(int argc, char **argv)
+int		main(int argc, char **argv)
 {
 	t_params		parameters;
 	t_philo			*philosophers;
@@ -59,7 +59,7 @@ void	*watching(void *args)
 	return (NULL);
 }
 
-int	monitoring(t_philo **philo, int *full, int *i)
+int		monitoring(t_philo **philo, int *full, int *i)
 {
 	if ((*philo)[0].param->nb_meal > 0
 		&& (*philo)[*i].nb_meal >= (*philo)[*i].param->nb_meal)
